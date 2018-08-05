@@ -62,13 +62,13 @@ class Bot:
 
         print(msg["chat"]["id"])
         if command[0] == '/getreport' and len(command) == 1:
-            cs_writer(self.get_message_report(msg["from"]["username"]), csv_file)
+            self.botDB.savecsv(self.get_message_report(msg["from"]["username"]), csv_file)
             self.bot.sendDocument(msg["chat"]["id"], open(csv_file, 'rb'))  # send report
 
         elif command[0] == '/getreport' and len(command) == 2:
             if command[1].isdigit():
                 days = command[1]
-                cs_writer(self.get_message_report(msg["from"]["username"], days), csv_file)
+                self.botDB.savecsv(self.get_message_report(msg["from"]["username"], days), csv_file)
                 self.bot.sendDocument(msg["chat"]["id"], open(csv_file, 'rb'))  # send report
 
         elif command[0] == '/start':  # Show commands help, also works for /start command
