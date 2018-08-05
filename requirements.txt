@@ -1,0 +1,4 @@
+telepot
+flask
+retrying
+mysql
