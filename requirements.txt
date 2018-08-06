@@ -1,4 +1,4 @@
 telepot
 flask
 retrying
-mysql
+mysql-connector-python
