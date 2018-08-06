@@ -47,10 +47,16 @@ class Bot:
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def handle_message(self, msg):
-        if 'username' not in msg['from'] or msg['from']['username'] not in self.get_botadmins():
+        content_type, chat_type, chat_id = telepot.glance(msg)
+        print(content_type, chat_type, chat_id)
+
+        if chat_type == 'channel':
+            return None # not intended for handling channel messages
+
+        if msg['from']['username'] not in self.get_botadmins():
             return None  # Ignore non admin users
 
-        if 'text' in msg:
+        if content_type == 'text':
             self.parse_message(msg)
 
     def reply(self, msg, reply):
@@ -59,8 +65,8 @@ class Bot:
     def parse_message(self, msg):
         command = msg["text"].strip().split(' ')
         csv_file = "report.csv"
+        content_type, chat_type, chat_id = telepot.glance(msg)
 
-        print(msg["chat"]["id"])
         if command[0] == '/getreport' and len(command) == 1:
             self.botDB.savecsv(self.get_message_report(msg["from"]["username"]), csv_file)
             self.bot.sendDocument(msg["chat"]["id"], open(csv_file, 'rb'))  # send report
@@ -81,8 +87,10 @@ class Bot:
                 "Generate message report. Default is 1 day, /getreport 2 will get 2 days i.e\n\n"
                 )
             self.reply(msg, help_text)
-        else:  # No report needed, just save the message
+        elif chat_type != 'private':  # No report needed, just save the message
             self.save_messages(msg["from"]["username"], msg["date"], msg["text"], msg["chat"]["title"])
+        else:
+            return None
 
 
 if __name__ == '__main__':
