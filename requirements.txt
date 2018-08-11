@@ -1,4 +1,4 @@
 telepot
 retrying
-mysql-connector-python
+mysql-connector
 configparser
