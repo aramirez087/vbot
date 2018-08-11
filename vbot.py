@@ -49,7 +49,7 @@ class Bot:
     def handle_message(self, msg):
         content_type, chat_type, chat_id = telepot.glance(msg)
 
-        if content_type != 'text' or chat_type == 'channel':
+        if content_type != 'text' or chat_type == 'channel' or 'username' not in msg['from']:
             return None  # not intended for handling channel or non text messages
 
         if msg['from']['username'] in self.get_botadmins():
