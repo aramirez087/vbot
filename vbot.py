@@ -48,16 +48,12 @@ class Bot:
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def handle_message(self, msg):
         content_type, chat_type, chat_id = telepot.glance(msg)
-        print(content_type, chat_type, chat_id)
 
-        if chat_type == 'channel':
-            return None # not intended for handling channel messages
+        if content_type != 'text' or chat_type == 'channel':
+            return None  # not intended for handling channel or non text messages
 
-        if msg['from']['username'] not in self.get_botadmins():
-            return None  # Ignore non admin users
-
-        if content_type == 'text':
-            self.parse_message(msg)
+        if msg['from']['username'] in self.get_botadmins():
+            self.parse_message(msg)  # Ignore non admin users
 
     def reply(self, msg, reply):
         self.bot.sendMessage(msg['chat']['id'], reply, parse_mode='Markdown')
@@ -67,15 +63,17 @@ class Bot:
         csv_file = "report.csv"
         content_type, chat_type, chat_id = telepot.glance(msg)
 
-        if command[0] == '/getreport' and len(command) == 1:
+        if command[0] == '/getreport' or command[0] == '/getreport@snet_vbot' and len(command) == 1:
             self.botDB.savecsv(self.get_message_report(msg["from"]["username"]), csv_file)
-            self.bot.sendDocument(msg["chat"]["id"], open(csv_file, 'rb'))  # send report
+            with open(csv_file, 'rb') as f:
+                self.bot.sendDocument(msg["chat"]["id"], f)  # send report
 
-        elif command[0] == '/getreport' and len(command) == 2:
+        elif command[0] == '/getreport' or command[0] == '/getreport@snet_vbot' and len(command) == 2:
             if command[1].isdigit():
                 days = command[1]
                 self.botDB.savecsv(self.get_message_report(msg["from"]["username"], days), csv_file)
-                self.bot.sendDocument(msg["chat"]["id"], open(csv_file, 'rb'))  # send report
+                with open(csv_file, 'rb') as f:
+                    self.bot.sendDocument(msg["chat"]["id"], f)  # send report
 
         elif command[0] == '/start':  # Show commands help, also works for /start command
             help_text = (
