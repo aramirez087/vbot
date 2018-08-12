@@ -1,8 +1,6 @@
 CREATE DATABASE  IF NOT EXISTS `vbot`;
 USE `vbot`;
 
-
-DROP TABLE IF EXISTS `admins`;
 CREATE TABLE `admins` (
   `userid` mediumint(9) NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL,
@@ -11,16 +9,12 @@ CREATE TABLE `admins` (
   UNIQUE KEY `username` (`username`)
 );
 
-
-DROP TABLE IF EXISTS `groups`;
 CREATE TABLE `groups` (
   `groupid` mediumint(9) NOT NULL AUTO_INCREMENT,
   `groupname` varchar(50) NOT NULL,
   PRIMARY KEY (`groupid`)
 );
 
-
-DROP TABLE IF EXISTS `messages`;
 CREATE TABLE `messages` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `userid` mediumint(9) NOT NULL,
@@ -42,7 +36,7 @@ BEGIN
 END;
 //
 
-DELIMITER //
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_savemessages`(uname varchar(50), messagedate datetime, messagetext nvarchar(4096), gname varchar(50))
 BEGIN
 	SET @userid = (SELECT userid FROM `admins` WHERE username = uname);
@@ -60,8 +54,6 @@ END;
 //
 
 
-
-DELIMITER //
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_getmessagereport`(uname varchar(50), days int)
 BEGIN
 	SELECT @userid:=userid, @root:=root FROM admins WHERE username = uname;

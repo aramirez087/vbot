@@ -75,7 +75,7 @@ class Bot:
                 with open(csv_file, 'rb') as f:
                     self.bot.sendDocument(msg["chat"]["id"], f)  # send report
 
-        elif command[0] == '/start':  # Show commands help, also works for /start command
+        elif command[0] == '/start' or command[0] == '/start@snet_vbot':  # Show help, also works for /start command
             help_text = (
                 "*VBot community voting bot*\n"
                 "Available commands:\n\n"
