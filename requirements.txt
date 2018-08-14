@@ -1,4 +1,4 @@
-telepot
+python-telegram-bot
 retrying
 mysql-connector
 configparser

@@ -1,100 +1,88 @@
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from retrying import retry
 from botdb import BotDB
 from config import Config
 from mwt import MWT
-import telepot
-import time
-import sys
+import logging
 
 
 class Bot:
+    updater = None
     config = None
+    logger = None
     botDB = None
-    bot = None
+    dp = None
     admins = []
 
     def __init__(self, cfg, db):
         self.config = cfg
         self.botDB = db
+        self.admins = self.get_botadmins()
 
     def start(self):
-        try:
-            self.bot = telepot.Bot(self.config.get('telegram', 'bot_token'))
-            self.bot.setWebhook('')  # Remove existent webhook
-            self.bot.message_loop(
-                self.handle_message,
-                relax=self.config.getint('telegram', 'polling_interval'))
-        except telepot.exception.TelegramError:
-            print("ERROR: Couldn't start Telegram bot. Check telegram bot configuration.")
-            sys.exit()
+        # Enable logging
+        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                            level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        # Setup bot
+        self.updater = Updater(self.config.get('telegram', 'bot_token'))
+        self.dp = self.updater.dispatcher
+        # Add commands
+        self.dp.add_handler(CommandHandler(['start', 'help'], self.help))
+        self.dp.add_handler(CommandHandler('getreport', self.get_report, pass_args=True, filters=Filters.user(self.admins)))
+        self.dp.add_handler(MessageHandler(Filters.text & ~Filters.private & Filters.user(self.admins), self.save_message))
+        self.dp.add_error_handler(self.error)
+        self.updater.start_polling()  # Start the Bot
+        self.logger.info('Listening...')
+        self.updater.idle()  # Run the bot until you press Ctrl-C or the process receives SIGINT
 
-    @MWT(timeout=60 * 60)
+    def help(self, bot, update):
+        update.message.reply_text("*VBot community voting bot*\n"
+                                  "Available commands:\n\n"
+                                  "/start\n"
+                                  "Show this help\n\n"
+                                  "/getreport\n"
+                                  "Generate message report. Default is 1 day, /getreport 2 will get 2 days i.e\n\n")
+
+    def error(self, bot, update, error):
+        """Log all errors"""
+        self.logger.warning(f'Update "{update}" caused error "{err}"')
+
+    @MWT(timeout=60 * 30)
     def get_botadmins(self):
-        #  Returns a list of bot admins. Results are cached for 1 hour.
+        #  Returns a list of bot admins. Results are cached for 30 minutes
         return [item[0] for item in self.botDB.callproc('usp_getadmins')]  # convert first column to list
 
-    def get_message_report(self, username, days=1):
-        data = self.botDB.callproc('usp_getmessagereport', [username, days])
+    def get_message_report(self, userid, days):
+        data = self.botDB.callproc('usp_getmessagereport', [userid, days])
         # Adding headers
         if len(data[0]) < 4:  # report invoked by regular admin
             return [("DATE", "GROUP", "MESSAGES")] + data
         else:  # report invoked by root admin
             return [("USERNAME", "GROUP", "DATE", "MESSAGES")] + data
 
-    def save_messages(self, username, date, message, group):
-        fdate = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(date))  # format epoch
-        self.botDB.callproc('usp_savemessages', [username, fdate, message, group])
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
+    def get_report(self, bot, update, args=[]):
+        csv_file = "report.csv"
+        days = "1" if len(args) == 0 else args[0]  # default to 1 if not supplied
+        if not days.isdigit() or (int(days) < 0 or int(days) > 365):
+            update.message.reply_text("Please provide a numeric value between 0 and 365")
+            return None
+        self.botDB.savecsv(self.get_message_report(update.message.from_user.id, days), csv_file)
+        with open(csv_file, 'rb') as f:
+            bot.sendDocument(update.message.chat.id, f)  # send report
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
-    def handle_message(self, msg):
-        content_type, chat_type, chat_id = telepot.glance(msg)
-
-        if content_type != 'text' or chat_type == 'channel' or 'username' not in msg['from']:
-            return None  # not intended for handling channel or non text messages
-
-        if msg['from']['username'] in self.get_botadmins():
-            self.parse_message(msg)  # Ignore non admin users
-
-    def reply(self, msg, reply):
-        self.bot.sendMessage(msg['chat']['id'], reply, parse_mode='Markdown')
-
-    def parse_message(self, msg):
-        command = msg["text"].strip().split(' ')
-        csv_file = "report.csv"
-        content_type, chat_type, chat_id = telepot.glance(msg)
-
-        if command[0] == '/getreport' or command[0] == '/getreport@snet_vbot' and len(command) == 1:
-            self.botDB.savecsv(self.get_message_report(msg["from"]["username"]), csv_file)
-            with open(csv_file, 'rb') as f:
-                self.bot.sendDocument(msg["chat"]["id"], f)  # send report
-
-        elif command[0] == '/getreport' or command[0] == '/getreport@snet_vbot' and len(command) == 2:
-            if command[1].isdigit():
-                days = command[1]
-                self.botDB.savecsv(self.get_message_report(msg["from"]["username"], days), csv_file)
-                with open(csv_file, 'rb') as f:
-                    self.bot.sendDocument(msg["chat"]["id"], f)  # send report
-
-        elif command[0] == '/start' or command[0] == '/start@snet_vbot':  # Show help, also works for /start command
-            help_text = (
-                "*VBot community voting bot*\n"
-                "Available commands:\n\n"
-                "/start\n"
-                "Show this help\n\n"
-                "/getreport\n"
-                "Generate message report. Default is 1 day, /getreport 2 will get 2 days i.e\n\n"
-                )
-            self.reply(msg, help_text)
-        elif chat_type != 'private':  # No report needed, just save the message
-            self.save_messages(msg["from"]["username"], msg["date"], msg["text"], msg["chat"]["title"])
-        else:
-            return None
+    def save_message(self, bot, update):
+        m = update.message
+        self.botDB.callproc('usp_savemessages', [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date, m.text])
 
 
-if __name__ == '__main__':
+def main():
     config = Config()
     bot = Bot(config.get(), BotDB(config.get()))
     bot.start()
 
-    while True:
-        time.sleep(10)
+
+if __name__ == '__main__':
+    main()

@@ -1,26 +1,30 @@
 CREATE DATABASE  IF NOT EXISTS `vbot`;
 USE `vbot`;
 
+CREATE TABLE `registrationkey` (
+  `passphrase` nvarchar(50) NOT NULL
+);
+
 CREATE TABLE `admins` (
-  `userid` mediumint(9) NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) NOT NULL,
+  `userid` int NOT NULL,
+  `username` nvarchar(50) NOT NULL,
   `root` tinyint(4) DEFAULT '0',
   PRIMARY KEY (`userid`),
   UNIQUE KEY `username` (`username`)
 );
 
 CREATE TABLE `groups` (
-  `groupid` mediumint(9) NOT NULL AUTO_INCREMENT,
-  `groupname` varchar(50) NOT NULL,
+  `groupid` bigint NOT NULL,
+  `groupname` nvarchar(50) NOT NULL,
   PRIMARY KEY (`groupid`)
 );
 
 CREATE TABLE `messages` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `userid` mediumint(9) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `userid` int NOT NULL,
   `messagedate` datetime NOT NULL,
   `messagetext` nvarchar(4096) NOT NULL,
-  `groupid` mediumint(9) NOT NULL,
+  `groupid` bigint NOT NULL,
   PRIMARY KEY (`id`),
   KEY `userid` (`userid`),
   KEY `groupid` (`groupid`),
@@ -28,35 +32,57 @@ CREATE TABLE `messages` (
   CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`groupid`) REFERENCES `groups` (`groupid`)
 );
 
-
 DELIMITER //
 CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_getadmins`()
 BEGIN
-	select username from `admins`;
+	SELECT userid FROM `admins`;
 END;
 //
 
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_savemessages`(uname varchar(50), messagedate datetime, messagetext nvarchar(4096), gname varchar(50))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_getpassphrase`()
 BEGIN
-	SET @userid = (SELECT userid FROM `admins` WHERE username = uname);
-	SET @groupid = (SELECT groupid FROM `groups` WHERE groupname = gname);
-    
-    /*insert new group if doesn't exist*/
-    IF (@groupid IS NULL) THEN
-		INSERT INTO `groups` (groupname) VALUES (gname);
-        SET @groupid = (SELECT LAST_INSERT_ID());
-	END IF;
+	SELECT passphrase FROM `registrationkey`;
+END;
+//
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_saveadmin`(uid int, uname varchar(50))
+BEGIN
+	SET @userid = (SELECT userid FROM `admins` WHERE userid = uid);
+
+    /*admin upsert*/
+    INSERT IGNORE INTO `admins` (userid, username)
+	VALUES (uid, uname);
+
+	UPDATE `admins`
+	SET username = uname
+	WHERE userid = uid AND username <> uname;
+END;
+//
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_savemessages`(uid int, uname nvarchar(50), gid bigint, gname varchar(50), messagedate datetime, messagetext nvarchar(4096))
+BEGIN
+    /*Group upsert*/
+    INSERT IGNORE INTO `groups` (groupid, groupname)
+	VALUES (gid, gname);
+
+	UPDATE `groups`
+	SET groupname = gname
+	WHERE groupid = gid AND groupname <> gname;
+
+	/*Keep usernames updated*/
+	UPDATE `admins`
+	SET username = uname
+	WHERE userid = uid AND username <> uname;
     
     INSERT INTO `messages` (userid, messagedate, messagetext, groupid)
-    VALUES (@userid, messagedate, messagetext, @groupid);
+    VALUES (uid, messagedate, messagetext, gid);
 END;
 //
 
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_getmessagereport`(uname varchar(50), days int)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_getmessagereport`(uid int, days int)
 BEGIN
-	SELECT @userid:=userid, @root:=root FROM admins WHERE username = uname;
+	SELECT @userid:=userid, @root:=root FROM admins WHERE userid = uid;
     
     IF @root = 1 THEN
 		SELECT username as 'USERNAME', g.groupname as 'GROUP', DATE_FORMAT(messagedate,'%m/%d/%Y') AS `DATE`,  COUNT(1) AS `MESSAGES`
