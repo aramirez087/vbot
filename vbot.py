@@ -31,8 +31,12 @@ class Bot:
         self.dp = self.updater.dispatcher
         # Add commands
         self.dp.add_handler(CommandHandler(['start', 'help'], self.help))
-        self.dp.add_handler(CommandHandler('getreport', self.get_report, pass_args=True, filters=Filters.user(self.admins)))
-        self.dp.add_handler(MessageHandler(Filters.text & ~Filters.private & Filters.user(self.admins), self.save_message))
+        self.dp.add_handler(CommandHandler('getreport',
+                                           self.get_report,
+                                           pass_args=True,
+                                           filters=Filters.user(self.admins)))
+        self.dp.add_handler(MessageHandler(Filters.text & ~Filters.private & Filters.user(self.admins),
+                                           self.save_message))
         self.dp.add_error_handler(self.error)
         self.updater.start_polling()  # Start the Bot
         self.logger.info('Listening...')
@@ -55,26 +59,25 @@ class Bot:
         """Returns a list of bot admins. Results are cached for 30 minutes"""
         return [item[0] for item in self.botDB.callproc('usp_getadmins')]  # convert first column to list
 
-    def get_message_report(self, userid, days):
-        return self.botDB.callproc('usp_getmessagereport', [userid, days], addheaders=True)
-
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def get_report(self, bot, update, args=None):
         csv_file = "report.csv"
         days = "1" if args is None else args[0]  # default to 1 if not supplied
+        userid = update.message.from_user.id
 
         if not days.isdigit() or (int(days) < 0 or int(days) > 365):
             update.message.reply_text("Please provide a numeric value between 0 and 365")
             return None  # command args validation
 
-        self.botDB.savecsv(self.get_message_report(update.message.from_user.id, days), csv_file)
+        self.botDB.savecsv(self.botDB.callproc('usp_getmessagereport', [userid, days], addheaders=True), csv_file)
         with open(csv_file, 'rb') as f:
             bot.sendDocument(update.message.chat.id, f)  # send report
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def save_message(self, bot, update):
         m = update.message
-        self.botDB.callproc('usp_savemessages', [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date, m.text])
+        args = [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date, m.text]
+        self.botDB.callproc('usp_savemessages', args)
 
 
 def main():
