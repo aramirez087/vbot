@@ -1,9 +1,11 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import logging
+
 from retrying import retry
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
 from botdb import BotDB
 from config import Config
 from mwt import MWT
-import logging
 
 
 class Bot:
@@ -46,28 +48,25 @@ class Bot:
 
     def error(self, bot, update, error):
         """Log all errors"""
-        self.logger.warning(f'Update "{update}" caused error "{err}"')
+        self.logger.warning(f'Update "{update}" caused error "{error}"')
 
     @MWT(timeout=60 * 30)
     def get_botadmins(self):
-        #  Returns a list of bot admins. Results are cached for 30 minutes
+        """Returns a list of bot admins. Results are cached for 30 minutes"""
         return [item[0] for item in self.botDB.callproc('usp_getadmins')]  # convert first column to list
 
     def get_message_report(self, userid, days):
-        data = self.botDB.callproc('usp_getmessagereport', [userid, days])
-        # Adding headers
-        if len(data[0]) < 4:  # report invoked by regular admin
-            return [("DATE", "GROUP", "MESSAGES")] + data
-        else:  # report invoked by root admin
-            return [("USERNAME", "GROUP", "DATE", "MESSAGES")] + data
+        return self.botDB.callproc('usp_getmessagereport', [userid, days], addheaders=True)
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
-    def get_report(self, bot, update, args=[]):
+    def get_report(self, bot, update, args=None):
         csv_file = "report.csv"
-        days = "1" if len(args) == 0 else args[0]  # default to 1 if not supplied
+        days = "1" if args is None else args[0]  # default to 1 if not supplied
+
         if not days.isdigit() or (int(days) < 0 or int(days) > 365):
             update.message.reply_text("Please provide a numeric value between 0 and 365")
-            return None
+            return None  # command args validation
+
         self.botDB.savecsv(self.get_message_report(update.message.from_user.id, days), csv_file)
         with open(csv_file, 'rb') as f:
             bot.sendDocument(update.message.chat.id, f)  # send report

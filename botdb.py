@@ -1,6 +1,6 @@
-from mysql.connector import MySQLConnection, Error
 import csv
-import os
+
+from mysql.connector import MySQLConnection, Error
 
 
 class BotDB:
@@ -20,18 +20,24 @@ class BotDB:
         except Error as error:
             print(error)
 
-    def callproc(self, procname, args=[]):
+    def callproc(self, procname, args=None, addheaders=False):
         results = None
+        headers = None
         try:
             if self.conn.is_connected():
-                if len(args) == 0:
+                if args is None:
                     self.cursor.callproc(procname)
                 else:
                     self.cursor.callproc(procname, args)
 
                 self.conn.commit()  # do a commit
+
                 for result in self.cursor.stored_results():
+                    headers = result.description
                     results = result.fetchall()  # save procedure results
+
+                if addheaders:
+                    results = [tuple([item[0] for item in headers])] + results
             else:
                 print('connection failed.')
 
@@ -40,15 +46,11 @@ class BotDB:
             print(error)
 
     @staticmethod
-    def savecsv(data, fname):
-        try:
-            os.remove(fname)
-        except:
-            pass
+    def savecsv(data, f):
         try:
             # open file in write mode and hold object
             # create csv write object
-            with open(fname, 'wt', newline="") as out:
+            with open(f, 'wt', newline="") as out:
                 csv_out = csv.writer(out)
                 for row in data:
                     csv_out.writerow(row)
