@@ -20,7 +20,7 @@ class BotDB:
         except Error as error:
             print(error)
 
-    def callproc(self, procname, args=None, addheaders=False):
+    def callproc(self, procname, args=None, add_headers=False):
         results = None
         headers = None
         try:
@@ -36,7 +36,7 @@ class BotDB:
                     headers = result.description
                     results = result.fetchall()  # save procedure results
 
-                if addheaders:
+                if add_headers:
                     results = [tuple([item[0] for item in headers])] + results
             else:
                 print('connection failed.')

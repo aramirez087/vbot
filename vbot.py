@@ -69,7 +69,7 @@ class Bot:
             update.message.reply_text("Please provide a numeric value between 0 and 365")
             return None  # command args validation
 
-        self.botDB.savecsv(self.botDB.callproc('usp_getmessagereport', [userid, days], addheaders=True), csv_file)
+        self.botDB.savecsv(self.botDB.callproc('usp_getmessagereport', [userid, days], add_headers=True), csv_file)
         with open(csv_file, 'rb') as f:
             bot.sendDocument(update.message.chat.id, f)  # send report
 
