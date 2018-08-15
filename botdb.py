@@ -15,12 +15,13 @@ class BotDB:
             self.conn = MySQLConnection(user=self.config.get('mysql', 'user'),
                                         password=self.config.get('mysql', 'password'),
                                         host=self.config.get('mysql', 'host'),
-                                        database=self.config.get('mysql', 'database'))
+                                        database=self.config.get('mysql', 'database'),
+                                        charset='utf8mb4')
             self.cursor = self.conn.cursor()
         except Error as error:
             print(error)
 
-    def callproc(self, procname, args=None, addheaders=False):
+    def callproc(self, procname, args=None, add_headers=False):
         results = None
         headers = None
         try:
@@ -36,7 +37,7 @@ class BotDB:
                     headers = result.description
                     results = result.fetchall()  # save procedure results
 
-                if addheaders:
+                if add_headers:
                     results = [tuple([item[0] for item in headers])] + results
             else:
                 print('connection failed.')

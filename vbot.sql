@@ -1,6 +1,15 @@
 CREATE DATABASE  IF NOT EXISTS `vbot`;
 USE `vbot`;
 
+CREATE TABLE `votes` (
+  `chatid` bigint NOT NULL,
+  `messageid` bigint NOT NULL,
+  `userid` int NOT NULL,
+  `vote` int NOT NULL,
+  `hits` tinyint(4) DEFAULT '1' NOT NULL,
+  PRIMARY KEY (`chatid`, `messageid`, `userid`)
+);
+
 CREATE TABLE `registrationkey` (
   `passphrase` nvarchar(50) NOT NULL
 );
@@ -100,5 +109,27 @@ BEGIN
 				messagedate >= DATE_ADD(CURDATE(), INTERVAL days*-1 DAY)
 		GROUP BY DATE_FORMAT(messagedate,'%m/%d/%Y'), g.groupname;
 	END IF;
+END;
+//
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_savevote`(pchatid bigint, pmessageid bigint, puserid int, pvote int)
+BEGIN
+    SET @hits := 1;
+	INSERT INTO `votes`
+    (chatid, messageid, userid, vote)
+    VALUES
+        (pchatid, pmessageid, puserid, pvote)
+    ON DUPLICATE KEY UPDATE
+        hits = @hits := hits + 1,
+        vote = pvote;
+    SELECT @hits as hits;
+END;
+//
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_getvoters`(pchatid bigint, pmessageid bigint)
+BEGIN
+    SELECT userid, vote, hits
+    FROM `votes`
+    WHERE chatid = pchatid AND messageid = pmessageid;
 END;
 //
