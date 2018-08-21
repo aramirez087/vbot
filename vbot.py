@@ -161,7 +161,6 @@ class Bot:
 
         self.upvotes = np.append(self.upvotes, user)
         if len(self.downvotes) > 0 and user in self.downvotes:
-            index = [user]
             self.downvotes = np.delete(self.downvotes, np.where(self.downvotes == user))
 
         return True
@@ -174,6 +173,7 @@ class Bot:
         if len(self.upvotes) > 0 and user in self.upvotes:
             self.upvotes = np.delete(self.upvotes, np.where(self.upvotes == user))
 
+        return True
 
 def main():
     config = Config()
