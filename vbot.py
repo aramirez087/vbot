@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-from retrying import retry
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 
@@ -71,7 +70,6 @@ class Bot:
         """Returns a list of voters for specified choice."""
         return [item[0] for item in self.botDB.callproc('usp_getvoters', [chatid, messageid, vote])]
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def get_report(self, bot, update, args=None):
         """Send a CSV report with message counts per user/group/day"""
         csv_file = "report.csv"
@@ -86,7 +84,6 @@ class Bot:
         with open(csv_file, 'rb') as f:
             bot.sendDocument(update.message.chat.id, f)  # send report
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def save_message(self, bot, update):
         m = update.message
         args = [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date]
