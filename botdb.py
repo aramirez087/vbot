@@ -49,7 +49,6 @@ class BotDB:
     @staticmethod
     def savecsv(data, f):
         try:
-            # open file in write mode and hold object
             # create csv write object
             with open(f, 'wt', newline="") as out:
                 csv_out = csv.writer(out)

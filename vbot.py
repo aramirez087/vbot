@@ -45,7 +45,7 @@ class Bot:
                                            self.save_message))
         self.dp.add_handler(CommandHandler('fwp', self.create_poll))
         self.dp.add_handler(CallbackQueryHandler(self.button_pressed))
-        # self.dp.add_error_handler(self.error)
+        self.dp.add_error_handler(self.error)
         self.updater.start_polling()  # Start the Bot
         self.logger.info('Listening...')
         self.updater.idle()  # Run the bot until you press Ctrl-C or the process receives SIGINT
