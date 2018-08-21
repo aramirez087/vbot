@@ -147,7 +147,7 @@ class Bot:
                 reply_markup=self.keyboard()
             )
         elif query.data:
-            update.callback_query.answer(text='You have already voted, thank you!')
+            update.callback_query.answer(text='You have already voted, thank you...')
 
     def up(self, user):
         if len(self.upvotes) > 0 and user in self.upvotes:
