@@ -32,7 +32,6 @@ CREATE TABLE `messages` (
   `id` int NOT NULL AUTO_INCREMENT,
   `userid` int NOT NULL,
   `messagedate` datetime NOT NULL,
-  `messagetext` nvarchar(4096) NOT NULL,
   `groupid` bigint NOT NULL,
   PRIMARY KEY (`id`),
   KEY `userid` (`userid`),
@@ -68,7 +67,7 @@ BEGIN
 END;
 //
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_savemessages`(uid int, uname nvarchar(50), gid bigint, gname varchar(50), messagedate datetime, messagetext nvarchar(4096))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `usp_savemessages`(uid int, uname nvarchar(50), gid bigint, gname varchar(50), messagedate datetime)
 BEGIN
     /*Group upsert*/
     INSERT IGNORE INTO `groups` (groupid, groupname)
@@ -83,8 +82,8 @@ BEGIN
 	SET username = uname
 	WHERE userid = uid AND username <> uname;
     
-    INSERT INTO `messages` (userid, messagedate, messagetext, groupid)
-    VALUES (uid, messagedate, messagetext, gid);
+    INSERT INTO `messages` (userid, messagedate, groupid)
+    VALUES (uid, messagedate, gid);
 END;
 //
 

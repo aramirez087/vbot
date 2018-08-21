@@ -75,7 +75,7 @@ class Bot:
     def get_report(self, bot, update, args=None):
         """Send a CSV report with message counts per user/group/day"""
         csv_file = "report.csv"
-        days = "1" if args is None else args[0]  # default to 1 if not supplied
+        days = "1" if len(args) == 0 else args[0]  # default to 1 if not supplied
         userid = update.message.from_user.id
 
         if not days.isdigit() or (int(days) < 0 or int(days) > 365):
@@ -89,7 +89,7 @@ class Bot:
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=60000)
     def save_message(self, bot, update):
         m = update.message
-        args = [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date, m.text]
+        args = [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date]
         self.botDB.callproc('usp_savemessages', args)
 
     def label(self, icon, counter=0):
@@ -134,18 +134,24 @@ class Bot:
             self.downvotes = na[(na[:, 1] == 0)][:, 0]
 
         if query.data and hits < 3:
-            self.botDB.callproc('usp_savevote', [m.chat_id, m.message_id, update.effective_user.id, int(query.data)])
-            if query.data == "1":
-                self.up(update.effective_user.id)
-            elif query.data == "0":
-                self.down(update.effective_user.id)
+            prev_vote = "" if hits == 0 else str(na[(na[:, 0] == update.effective_user.id)][:, 1][0])
+            vote_args = [m.chat_id, m.message_id, update.effective_user.id, int(query.data)]
 
-            bot.edit_message_reply_markup(
-                chat_id=query.message.chat_id,
-                message_id=query.message.message_id,
-                inline_message_id=query.inline_message_id,
-                reply_markup=self.keyboard()
-            )
+            if query.data != prev_vote:  # is previous vote different than this one?
+                self.botDB.callproc('usp_savevote', vote_args)
+                if query.data == "1":
+                    self.up(update.effective_user.id)
+                elif query.data == "0":
+                    self.down(update.effective_user.id)
+
+                bot.edit_message_reply_markup(
+                    chat_id=query.message.chat_id,
+                    message_id=query.message.message_id,
+                    inline_message_id=query.inline_message_id,
+                    reply_markup=self.keyboard()
+                )
+            else:
+                update.callback_query.answer(text='No changes...')
         elif query.data:
             update.callback_query.answer(text='You have already voted, thank you!')
 
