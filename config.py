@@ -21,7 +21,7 @@ class Config:
         # Set default configuration'
         self.config['telegram'] = {}
         self.config['telegram']['bot_token'] = ''
-        sself.config['telegram']['vote_channel'] = '-100111111111'
+        self.config['telegram']['vote_channel'] = '-100111111111'
         self.config['mysql'] = {}
         self.config['mysql']['host'] = 'localhost'
         self.config['mysql']['database'] = 'vbot'
