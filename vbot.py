@@ -118,12 +118,13 @@ class Bot:
         title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
         if msg.reply_to_message:
             if msg.reply_to_message.text:
-                title += '<i>In response to:\n    "' + \
+                title += '<b>In response to:\n    "</b>' + \
                          msg.reply_to_message.text + \
-                         '" -' + msg.reply_to_message.from_user.username + '</i>\n'
-                content = '<b>Reply:</b>\n' + msg.text[5:]
+                         '" -' + msg.reply_to_message.from_user.username + '\n'
+                content = msg.text[5:].replace('snet_vbot', '')
+                msgtext = title + '\n\n' + '<b>Reply:</b>\n' + content if content != '' else title
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
-                                text=title + '\n\n' + content,
+                                text=msgtext,
                                 reply_markup=reply_markup,
                                 parse_mode="HTML")
             elif msg.reply_to_message.photo:
@@ -134,9 +135,10 @@ class Bot:
                               )
         else:
             if msg.text:
-                content = msg.text[5:]
+                content = msg.text[5:].replace('snet_vbot', '')
+                msgtext = title + '\n\n' + content if content != '' else title
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
-                                text=title + '\n\n' + content,
+                                text=msgtext,
                                 reply_markup=reply_markup,
                                 parse_mode="HTML")
 
