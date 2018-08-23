@@ -118,9 +118,9 @@ class Bot:
         if msg.reply_to_message:
             if msg.reply_to_message.text:
                 title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
-                title += '<i>In response to:</i>\n    "' + \
+                title += '<i>In response to:\n    "' + \
                          msg.reply_to_message.text + \
-                         '" -' + msg.reply_to_message.from_user.username + '\n'
+                         '" -' + msg.reply_to_message.from_user.username + '</i>\n'
                 content = '<b>Reply:</b>\n' + msg.text[5:]
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
                                 text=title + '\n\n' + content,
@@ -133,10 +133,13 @@ class Bot:
                               reply_markup=reply_markup
                               )
         else:
-            bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
-                            text=msg.text[5:] + '\n',
-                            reply_markup=reply_markup,
-                            parse_mode="HTML")
+            if msg.text:
+                title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
+                content = msg.text[5:]
+                bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
+                                text=title + '\n\n' + content,
+                                reply_markup=reply_markup,
+                                parse_mode="HTML")
 
     def button_pressed(self, bot, update):
         query = update.callback_query
