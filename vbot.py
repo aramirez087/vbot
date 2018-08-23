@@ -115,9 +115,9 @@ class Bot:
         reply_markup = self.empty_keyboard()
         msg = update.message
 
+        title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
         if msg.reply_to_message:
             if msg.reply_to_message.text:
-                title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
                 title += '<i>In response to:\n    "' + \
                          msg.reply_to_message.text + \
                          '" -' + msg.reply_to_message.from_user.username + '</i>\n'
@@ -134,7 +134,6 @@ class Bot:
                               )
         else:
             if msg.text:
-                title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
                 content = msg.text[5:]
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
                                 text=title + '\n\n' + content,
