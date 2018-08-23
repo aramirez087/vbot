@@ -112,18 +112,31 @@ class Bot:
         return InlineKeyboardButton(label, callback_data=callback)
 
     def create_poll(self, bot, update):
-        # TODO check if its a reply if not create a simple poll
         reply_markup = self.empty_keyboard()
         msg = update.message
-        title = '_Poll created by ' + msg.effective_user.username + ' from "' + msg.chat.title + '"_\n'
-        title += '_In response to:\n    "' + \
-                 msg.reply_to_message.text + \
-                 '" -' + msg.reply_to_message.from_user.username + '_\n'
-        content = '*Reply:\n' + update.message.text[5:] + '*'
-        bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
-                        text=title + '\n\n' + content,
-                        reply_markup=reply_markup,
-                        parse_mode="Markdown")
+
+        if msg.reply_to_message:
+            if msg.reply_to_message.text:
+                title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
+                title += '<i>In response to:</i>\n    "' + \
+                         msg.reply_to_message.text + \
+                         '" -' + msg.reply_to_message.from_user.username + '\n'
+                content = '<b>Reply:</b>\n' + update.message.text[5:]
+                bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
+                                text=title + '\n\n' + content,
+                                reply_markup=reply_markup,
+                                parse_mode="HTML")
+            elif msg.reply_to_message.photo:
+                bot.sendPhoto(chat_id=self.config.get('telegram', 'vote_channel'),
+                              photo=msg.reply_to_message.photo[-1],
+                              caption='Sent by: ' + msg.from_user.username,
+                              reply_markup=reply_markup
+                              )
+        else:
+            bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
+                            text=update.message.text[5:] + '\n',
+                            reply_markup=reply_markup,
+                            parse_mode="HTML")
 
     def button_pressed(self, bot, update):
         query = update.callback_query
