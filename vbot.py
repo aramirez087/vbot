@@ -121,7 +121,7 @@ class Bot:
                 title += '<i>In response to:</i>\n    "' + \
                          msg.reply_to_message.text + \
                          '" -' + msg.reply_to_message.from_user.username + '\n'
-                content = '<b>Reply:</b>\n' + update.message.text[5:]
+                content = '<b>Reply:</b>\n' + msg.text[5:]
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
                                 text=title + '\n\n' + content,
                                 reply_markup=reply_markup,
@@ -134,7 +134,7 @@ class Bot:
                               )
         else:
             bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
-                            text=update.message.text[5:] + '\n',
+                            text=msg.text[5:] + '\n',
                             reply_markup=reply_markup,
                             parse_mode="HTML")
 
