@@ -66,10 +66,6 @@ class Bot:
         """Returns a list of bot admins. Results are cached for 30 minutes"""
         return [item[0] for item in self.botDB.callproc('usp_getadmins')]  # convert first column to list
 
-    def get_voters(self, chatid, messageid, vote):
-        """Returns a list of voters for specified choice."""
-        return [item[0] for item in self.botDB.callproc('usp_getvoters', [chatid, messageid, vote])]
-
     def get_report(self, bot, update, args=None):
         """Send a CSV report with message counts per user/group/day"""
         csv_file = "report.csv"
