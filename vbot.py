@@ -42,7 +42,8 @@ class Bot:
                                            filters=Filters.user(self.admins)))
         self.dp.add_handler(MessageHandler(Filters.text & ~Filters.private & Filters.user(self.admins),
                                            self.save_message))
-        self.dp.add_handler(CommandHandler('fwp', self.create_poll))
+        self.dp.add_handler(CommandHandler('fwp', self.create_poll),
+                            filters=Filters.user(self.admins))
         self.dp.add_handler(CallbackQueryHandler(self.button_pressed))
         self.dp.add_error_handler(self.error)
         self.updater.start_polling()  # Start the Bot
