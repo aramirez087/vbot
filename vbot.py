@@ -42,9 +42,7 @@ class Bot:
                                            filters=Filters.user(self.admins)))
         self.dp.add_handler(MessageHandler(Filters.text & ~Filters.private & Filters.user(self.admins),
                                            self.save_message))
-        self.dp.add_handler(CommandHandler('fwp', self.create_poll, filters=Filters.user(self.admins)))
         self.dp.add_handler(CallbackQueryHandler(self.button_pressed))
-        self.dp.add_error_handler(self.error)
         self.updater.start_polling()  # Start the Bot
         self.logger.info('Listening...')
         self.updater.idle()  # Run the bot until you press Ctrl-C or the process receives SIGINT
@@ -56,10 +54,6 @@ class Bot:
                                   "Show this help\n\n"
                                   "/getreport\n"
                                   "Generate message report. Default is 1 day, /getreport 2 will get 2 days i.e\n\n")
-
-    def error(self, bot, update, error):
-        """Log all errors"""
-        self.logger.warning(f'Update "{update}" caused error "{error}"')
 
     @MWT(timeout=60 * 30)
     def get_botadmins(self):
@@ -81,8 +75,12 @@ class Bot:
             bot.sendDocument(update.message.chat.id, f)  # send report
 
     def save_message(self, bot, update):
+        if update.message.text.upper().startswith('!FWP'):
+            self.create_poll(bot, update)
+            return None
+
         m = update.message
-        args = [m.from_user.id, m.from_user.username, m.chat.id, m.chat.title, m.date]
+        args = [m.from_user.id, m.from_user.first_name, m.chat.id, m.chat.title, m.date]
         self.botDB.callproc('usp_savemessages', args)
 
     def label(self, icon, counter=0):
@@ -111,12 +109,14 @@ class Bot:
         reply_markup = self.empty_keyboard()
         msg = update.message
 
-        title = '<i>Poll created by ' + msg.from_user.username + ' from "' + msg.chat.title + '"</i>\n'
+        title = '<i>Poll created by</i> <a href="tg://user?id=' + str(msg.from_user.id)
+        title += '">' + msg.from_user.first_name + '</a> <i>from "' + msg.chat.title + '</i>"\n'
         if msg.reply_to_message:
             if msg.reply_to_message.text:
                 title += '<b>In response to:\n    "</b>' + \
                          msg.reply_to_message.text + \
-                         '" -' + msg.reply_to_message.from_user.username + '\n'
+                         '"  - <a href="tg://user?id=' + str(msg.reply_to_message.from_user.id)
+                title += '">' + msg.reply_to_message.from_user.first_name + '</a>\n'
                 content = msg.text[5:].replace('snet_vbot', '')
                 msgtext = title + '\n\n' + '<b>Reply:</b>\n' + content if content != '' else title
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
@@ -124,9 +124,11 @@ class Bot:
                                 reply_markup=reply_markup,
                                 parse_mode="HTML")
             elif msg.reply_to_message.photo:
+                content = msg.text[5:].replace('snet_vbot', '') if msg.text else ''
+                content = ' "' + content + '"' if msg.text else ''
                 bot.sendPhoto(chat_id=self.config.get('telegram', 'vote_channel'),
                               photo=msg.reply_to_message.photo[-1],
-                              caption='Sent by: ' + msg.from_user.username,
+                              caption='Sent by: ' + msg.from_user.first_name + content,
                               reply_markup=reply_markup
                               )
         else:
