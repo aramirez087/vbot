@@ -110,15 +110,15 @@ class Bot:
         msg = update.message
 
         title = '<i>Poll created by</i> <a href="tg://user?id=' + str(msg.from_user.id)
-        title += '">' + msg.from_user.first_name + '</a> <i>from "' + msg.chat.title + '</i>"\n'
+        title += '">' + msg.from_user.first_name + '</a> <i>from "' + msg.chat.title + '</i>"\n\n'
         if msg.reply_to_message:
             if msg.reply_to_message.text:
                 title += '<b>In response to:\n    "</b>' + \
                          msg.reply_to_message.text + \
                          '"  - <a href="tg://user?id=' + str(msg.reply_to_message.from_user.id)
-                title += '">' + msg.reply_to_message.from_user.first_name + '</a>\n'
+                title += '">' + msg.reply_to_message.from_user.first_name + '</a>\n\n'
                 content = msg.text[5:].replace('snet_vbot', '')
-                msgtext = title + '\n\n' + '<b>Reply:</b>\n' + content if content != '' else title
+                msgtext = title + '<b>Reply:</b>\n' + content if content != '' else title
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
                                 text=msgtext,
                                 reply_markup=reply_markup,
