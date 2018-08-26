@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext.dispatcher import run_async
 
 from botdb import BotDB
 from config import Config
@@ -60,9 +61,10 @@ class Bot:
         """Returns a list of bot admins. Results are cached for 30 minutes"""
         return [item[0] for item in self.botDB.callproc('usp_getadmins')]  # convert first column to list
 
+    @run_async
     def get_report(self, bot, update, args=None):
         """Send a CSV report with message counts per user/group/day"""
-        csv_file = "report.csv"
+        csv_file = str(update.message.from_user.id) + '.csv'
         days = "1" if len(args) == 0 else args[0]  # default to 1 if not supplied
         userid = update.message.from_user.id
 
@@ -74,6 +76,7 @@ class Bot:
         with open(csv_file, 'rb') as f:
             bot.sendDocument(update.message.chat.id, f)  # send report
 
+    @run_async
     def save_message(self, bot, update):
         if update.message.text.upper().startswith('!FWP'):
             self.create_poll(bot, update)
@@ -111,26 +114,27 @@ class Bot:
 
         title = '<i>Poll created by</i> <a href="tg://user?id=' + str(msg.from_user.id)
         title += '">' + msg.from_user.first_name + '</a> <i>from "' + msg.chat.title + '</i>"\n\n'
+        content = msg.text[5:].replace('snet_vbot', '')
         if msg.reply_to_message:
             if msg.reply_to_message.text:
                 title += '<b>In response to:\n    "</b>' + \
                          msg.reply_to_message.text + \
                          '"  - <a href="tg://user?id=' + str(msg.reply_to_message.from_user.id)
                 title += '">' + msg.reply_to_message.from_user.first_name + '</a>\n\n'
-                content = msg.text[5:].replace('snet_vbot', '')
                 msgtext = title + '<b>Reply:</b>\n' + content if content != '' else title
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
                                 text=msgtext,
                                 reply_markup=reply_markup,
                                 parse_mode="HTML")
-            elif msg.reply_to_message.photo:
-                content = msg.text[5:].replace('snet_vbot', '') if msg.text else ''
+            elif msg.reply_to_message.photo and len(content) <= 150:
                 content = ' "' + content + '"' if msg.text else ''
                 bot.sendPhoto(chat_id=self.config.get('telegram', 'vote_channel'),
                               photo=msg.reply_to_message.photo[-1],
                               caption='Sent by: ' + msg.from_user.first_name + content,
                               reply_markup=reply_markup
                               )
+            elif msg.reply_to_message.photo and len(content) > 150:
+                update.message.reply_text("Caption too long, please make it 150 characters max.")
         else:
             if msg.text:
                 content = msg.text[5:].replace('snet_vbot', '')
@@ -140,6 +144,7 @@ class Bot:
                                 reply_markup=reply_markup,
                                 parse_mode="HTML")
 
+    @run_async
     def button_pressed(self, bot, update):
         query = update.callback_query
         m = query.message
