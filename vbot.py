@@ -1,4 +1,5 @@
 import logging
+import os
 
 import numpy as np
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -64,7 +65,7 @@ class Bot:
     @run_async
     def get_report(self, bot, update, args=None):
         """Send a CSV report with message counts per user/group/day"""
-        csv_file = str(update.message.from_user.id) + '.csv'
+        csv_file = str(update.effective_user.id) + '.csv'
         days = "1" if len(args) == 0 else args[0]  # default to 1 if not supplied
         userid = update.message.from_user.id
 
@@ -73,8 +74,11 @@ class Bot:
             return None  # command args validation
 
         self.botDB.savecsv(self.botDB.callproc('usp_getmessagereport', [userid, days], add_headers=True), csv_file)
-        with open(csv_file, 'rb') as f:
-            bot.sendDocument(update.message.chat.id, f)  # send report
+        if os.stat(csv_file).st_size > 0:
+            with open(csv_file, 'rb') as f:
+                bot.sendDocument(update.message.chat.id, f)  # send report
+        else:
+            update.message.reply_text("I didn't find any data.")
 
     @run_async
     def save_message(self, bot, update):
