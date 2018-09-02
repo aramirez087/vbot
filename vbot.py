@@ -45,9 +45,16 @@ class Bot:
         self.dp.add_handler(MessageHandler(Filters.text & ~Filters.private & Filters.user(self.admins),
                                            self.save_message))
         self.dp.add_handler(CallbackQueryHandler(self.button_pressed))
+        # log all errors
+        self.dp.add_error_handler(self.error)
         self.updater.start_polling()  # Start the Bot
         self.logger.info('Listening...')
         self.updater.idle()  # Run the bot until you press Ctrl-C or the process receives SIGINT
+
+    def error(self, bot, update, error):
+        import traceback
+        self.logger.warning('Update "%s" caused error "%s"' % (update, error))
+        traceback.print_exc(file=sys.stdout)
 
     def help(self, bot, update):
         update.message.reply_text("*VBot community voting bot*\n"
@@ -62,12 +69,11 @@ class Bot:
         """Returns a list of bot admins. Results are cached for 30 minutes"""
         return [item[0] for item in self.botDB.callproc('usp_getadmins')]  # convert first column to list
 
-    @run_async
     def get_report(self, bot, update, args=None):
         """Send a CSV report with message counts per user/group/day"""
         csv_file = str(update.effective_user.id) + '.csv'
         days = "1" if len(args) == 0 else args[0]  # default to 1 if not supplied
-        userid = update.message.from_user.id
+        userid = update.effective_user.id
 
         if not days.isdigit() or (int(days) < 0 or int(days) > 365):
             update.message.reply_text("Please provide a numeric value between 0 and 365.")
@@ -142,7 +148,7 @@ class Bot:
         else:
             if msg.text:
                 content = msg.text[5:].replace('snet_vbot', '')
-                msgtext = title + '\n\n' + content if content != '' else title
+                msgtext = title + '\n' + content if content != '' else title
                 bot.sendMessage(chat_id=self.config.get('telegram', 'vote_channel'),
                                 text=msgtext,
                                 reply_markup=reply_markup,
@@ -157,7 +163,7 @@ class Bot:
         self.downvotes = np.array([])
         hits = 0
 
-        if len(na) > 0:  # avoid working with array when it has no data
+        if na.size > 0:  # avoid working with array when it has no data
             hits = na[(na[:, 0] == update.effective_user.id)][:, 2]  # vote counter
             hits = 0 if len(hits) == 0 else hits[0]
             self.upvotes = na[(na[:, 1] == 1)][:, 0]  # filter numpy array
