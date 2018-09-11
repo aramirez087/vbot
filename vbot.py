@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 import numpy as np
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -54,7 +55,7 @@ class Bot:
     def error(self, bot, update, error):
         import traceback
         self.logger.warning('Update "%s" caused error "%s"' % (update, error))
-        traceback.print_exc(file=sys.stdout)
+        traceback.print_exc()
 
     def help(self, bot, update):
         update.message.reply_text("*VBot community voting bot*\n"
