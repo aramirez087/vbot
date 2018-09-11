@@ -1,5 +1,4 @@
 .idea/vcs.xml
-config.py
 .idea/dbnavigator.xml
 .idea/misc.xml
 .idea/modules.xml
@@ -10,4 +9,3 @@ config.py
 __pycache__/botdb.cpython-36.pyc
 __pycache__/config.cpython-36.pyc
 __pycache__/mwt.cpython-36.pyc
-config.py
